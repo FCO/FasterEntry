@@ -25,24 +25,51 @@
 	</head>
 	<body>
 		<script>
-function FasterEntry(template, root) {
-	if(template == null) template = this.default_template;
-	if(root != null) this.root = root;
+function FasterEntry(template, modifiers, root) {
+	if(template == null)	template = this.default_template;
+	if(modifiers == null)	modifiers = FasterEntry.money_modifiers;
+	if(root != null)	this.root = root;
 	this.front = document.createElement("DIV");
 	this.front.obj = this;
 	this.front.className	= "front";
 	this.content	= document.createElement("DIV");
 	this.content.id	= "content";
+	this.modifiers = modifiers;
 	this.front.appendChild(this.content);
-	this.front.addEventListener("touchend",		this._endGetNewValue,	true);
-	this.front.addEventListener("mouseup", 		this._endGetNewValue,	true);
-	this.front.addEventListener("touchmove",	this._onTouchMove,	true);
-	this.front.addEventListener("mousemove",	this._onTouchMove,	true);
-	this.front.addEventListener("touchstart",	this._onTouchMove,	true);
-	this.front.addEventListener("mousestart",	this._onTouchMove,	true);
+	this.front.addEventListener("touchend",		this._endGetNewValue,	false);
+	this.front.addEventListener("mouseup", 		this._endGetNewValue,	false);
+	this.front.addEventListener("touchmove",	this._onTouchMove,	false);
+	this.front.addEventListener("mousemove",	this._onTouchMove,	false);
+	this.front.addEventListener("touchstart",	this._onTouchStart,	false);
+	this.front.addEventListener("mousedown",	this._onTouchStart,	false);
 }
 
-FasterEntry.default_template = "<span>R$<%= content %></span>";
+FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
+
+FasterEntry.moneyIncrementDollars = function(data, distance) {
+	data.dollars += distance;
+}
+
+FasterEntry.moneyIncrementCents = function(data, distance) {
+	data.cents += distance;
+	if(data.cents >= 100) {
+		data.dolars += data.cents / 100;
+		data.cents %= 100;
+	}
+}
+
+FasterEntry.money_modifiers = {
+	dolars: {
+		startWithX:	10,
+		intervalX:	5,
+		callback:	FasterEntry.moneyIncrementDollars,
+	},
+	cents: {
+		startWithY:	10,
+		intervalY:	5,
+		callback:	FasterEntry.moneyIncrementCents,
+	},
+};
 
 FasterEntry.prototype = {
 	root:		document.body,
@@ -54,10 +81,9 @@ FasterEntry.prototype = {
 	setTemplate:		function(template) {
 		this.template = new Template(template);
 	},
-	getNewValueOf:		function(data, callback, modifiers) {
+	getNewValueOf:		function(data, callback) {
 		this.data = data;
 		this.callback = callback;
-		this.modifiers = modifiers;
 		this.root.appendChild(this.front);
 		this.content.innerHTML	= this.template.render(data);
 		this.content.style.top	= (this.front.offsetHeight / 2) - (this.content.offsetHeight / 2);
@@ -69,12 +95,21 @@ FasterEntry.prototype = {
 		this.touches	= [];
 		this.callback	= null;
 		this.data	= null;
-		this.modifiers	= null;
 		this.firstTouch	= null;
 	},
-	touchHandler:		function(point) {
+	touchStartHandler:		function(point) {
 		if(!this.touches) this.touches = [];
-		if(this.touches <= 0) this.firstTouch = point;
+		if(this.touches.length <= 0) {
+			this.firstTouch = point;
+			this.touches.push(point);
+		}
+		console.log(point);
+	},
+	touchHandler:		function(point) {
+		if(!this.touches || this.touches.length <= 0) {
+			return;
+		}
+		console.log(point);
 	},
 	_endGetNewValue:	function(e) {
 		e.preventDefault();
@@ -84,13 +119,19 @@ FasterEntry.prototype = {
 	_onTouchMove:		function(e) {
 		e.preventDefault();
 		e.stopPropagation();
-		var touchPoint = {x: e.pageX, y: pageY, time: new Date()};
-		this.obj.touchHandler(point);
+		var touchPoint = {x: e.pageX, y: e.pageY, time: new Date()};
+		this.obj.touchHandler(touchPoint);
+	},
+	_onTouchStart:		function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		var touchPoint = {x: e.pageX, y: e.pageY, time: new Date()};
+		this.obj.touchStartHandler(touchPoint);
 	},
 };
 
 window.fasterEntry = new FasterEntry();
 		</script>
-		<button onclick='window.fasterEntry.getNewValueOf({content: "123,45"})'>123</button>
+		<button onclick='window.fasterEntry.getNewValueOf({dolars: 123, cents: 45})'>123</button>
 	</body>
 </html>
