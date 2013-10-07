@@ -46,14 +46,16 @@ function FasterEntry(template, modifiers, root) {
 
 FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
 
-FasterEntry.moneyIncrementDollars = function(data, distance) {
-	data.dollars += distance;
+FasterEntry.moneyIncrementDollars = function(data, deltaX, deltaY) {
+	console.log("moneyIncrementDollars");
+	data.dolars += deltaY;
 }
 
-FasterEntry.moneyIncrementCents = function(data, distance) {
-	data.cents += distance;
+FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
+	console.log("moneyIncrementCents");
+	data.cents += deltaX;
 	if(data.cents >= 100) {
-		data.dolars += data.cents / 100;
+		parseInt(data.dolars += data.cents / 100);
 		data.cents %= 100;
 	}
 }
@@ -77,7 +79,11 @@ FasterEntry.prototype = {
 	data:		null,
 	callback:	null,
 	touches:	null,
+	actualModifier:	null,
+	modLast:	null,
+	last:		null,
 	template:	new Template(FasterEntry.default_template),
+	modifiers:	{},
 	setTemplate:		function(template) {
 		this.template = new Template(template);
 	},
@@ -85,9 +91,14 @@ FasterEntry.prototype = {
 		this.data = data;
 		this.callback = callback;
 		this.root.appendChild(this.front);
-		this.content.innerHTML	= this.template.render(data);
+		this.render();
 		this.content.style.top	= (this.front.offsetHeight / 2) - (this.content.offsetHeight / 2);
 		this.content.style.left	= (this.front.offsetWidth  / 2) - (this.content.offsetWidth  / 2);
+		this.modLast = {};
+		this.last = {};
+	},
+	render:			function() {
+		this.content.innerHTML	= this.template.render(this.data);
 	},
 	close:			function() {
 		this.root.removeChild(this.front);
@@ -96,20 +107,66 @@ FasterEntry.prototype = {
 		this.callback	= null;
 		this.data	= null;
 		this.firstTouch	= null;
+		this.modLast	= {};
+		this.last	= {};
 	},
 	touchStartHandler:		function(point) {
 		if(!this.touches) this.touches = [];
 		if(this.touches.length <= 0) {
 			this.firstTouch = point;
+			this.last = point;
 			this.touches.push(point);
 		}
-		console.log(point);
+		//console.log(point);
 	},
 	touchHandler:		function(point) {
 		if(!this.touches || this.touches.length <= 0) {
 			return;
 		}
-		console.log(point);
+		console.log("touchHandler");
+		this.touches.push(point);
+		this.dispatchModifier();
+	},
+	dispatchModifier:	function() {
+		console.log("dispatchModifier");
+		var actual = this.actualModifier;
+		var point = this.touches[this.touches.length - 1];
+		if(actual) {
+			var mod = this.modifiers[actual];
+			var deltaX = point.x - this.modLast[actual].x;
+			var deltaY = point.y - this.modLast[actual].y;
+			var okX = ! mod.intervalX || mod.intervalX >= deltaX;
+			var okY = ! mod.intervalY || mod.intervalY >= deltaY;
+			if(okX && okY) {
+				console.log(this.data);
+				mod.callback.call(this, this.data, deltaX, deltaY);
+				this.modLast[actual] = point;
+				this.last = point;
+				this.render();
+				return;
+			}
+		}
+		for(var actual in this.modifiers) {
+			console.log(actual);
+			var mod = this.modifiers[actual];
+			console.log(mod);
+			var deltaX = point.x - this.last.x;
+			console.log(point.x + " - " + this.last.x);
+			var deltaY = point.y - this.last.y;
+			console.log(point.y + " - " + this.last.y);
+			console.log("deltaX: [" + deltaX + "] deltaY: [" + deltaY + "]");
+			var okX = ! mod.startWithX || mod.startWithX >= deltaX;
+			var okY = ! mod.startWithY || mod.startWithY >= deltaY;
+			if(okX && okY) {
+				console.log(this.data);
+				mod.callback.call(this, this.data, deltaX, deltaY);
+				this.actualModifier = actual;
+				this.modLast[actual] = point;
+				this.last = point;
+				this.render();
+				return;
+			}
+		}
 	},
 	_endGetNewValue:	function(e) {
 		e.preventDefault();
