@@ -34,10 +34,12 @@ function FasterEntry(template, root) {
 	this.content	= document.createElement("DIV");
 	this.content.id	= "content";
 	this.front.appendChild(this.content);
-	this.front.addEventListener("touchend", this._endGetNewValue, false);
-	this.front.addEventListener("mouseup",  this._endGetNewValue, false);
-	this.front.addEventListener("touchmove", this._onTouchMove, false);
-	this.front.addEventListener("mousemove", this._onTouchMove, false);
+	this.front.addEventListener("touchend",		this._endGetNewValue,	true);
+	this.front.addEventListener("mouseup", 		this._endGetNewValue,	true);
+	this.front.addEventListener("touchmove",	this._onTouchMove,	true);
+	this.front.addEventListener("mousemove",	this._onTouchMove,	true);
+	this.front.addEventListener("touchstart",	this._onTouchMove,	true);
+	this.front.addEventListener("mousestart",	this._onTouchMove,	true);
 }
 
 FasterEntry.default_template = "<span>R$<%= content %></span>";
@@ -47,13 +49,15 @@ FasterEntry.prototype = {
 	front:		null,
 	data:		null,
 	callback:	null,
+	touches:	null,
 	template:	new Template(FasterEntry.default_template),
 	setTemplate:		function(template) {
 		this.template = new Template(template);
 	},
-	getNewValueOf:		function(data, callback) {
+	getNewValueOf:		function(data, callback, modifiers) {
 		this.data = data;
 		this.callback = callback;
+		this.modifiers = modifiers;
 		this.root.appendChild(this.front);
 		this.content.innerHTML	= this.template.render(data);
 		this.content.style.top	= (this.front.offsetHeight / 2) - (this.content.offsetHeight / 2);
@@ -62,8 +66,15 @@ FasterEntry.prototype = {
 	close:			function() {
 		this.root.removeChild(this.front);
 		if(this.callback) this.callback.call(this, this.data);
+		this.touches	= [];
+		this.callback	= null;
+		this.data	= null;
+		this.modifiers	= null;
+		this.firstTouch	= null;
 	},
 	touchHandler:		function(point) {
+		if(!this.touches) this.touches = [];
+		if(this.touches <= 0) this.firstTouch = point;
 	},
 	_endGetNewValue:	function(e) {
 		e.preventDefault();
