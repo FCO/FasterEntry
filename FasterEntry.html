@@ -1,0 +1,85 @@
+<html>
+	<head>
+		<script src="JSTemplate/Template.js"></script>
+		<style>
+.front {
+	position:		fixed;
+	top:			0;
+	left:			0;
+	display:		block;
+	width:			100%;
+	height:			100%;
+	background-color:	rgba(200, 200, 200, 0.5);
+	border-width:		1px;
+	z-index:		999;
+	vertical-align:		middle;
+}
+
+.front #content {
+	position:		fixed;
+	background-color:	red;
+	text-align:		center;
+	vertical-align:		middle;
+}
+		</style>
+	</head>
+	<body>
+		<script>
+function FasterEntry(template, root) {
+	if(template == null) template = this.default_template;
+	if(root != null) this.root = root;
+	this.front = document.createElement("DIV");
+	this.front.obj = this;
+	this.front.className	= "front";
+	this.content	= document.createElement("DIV");
+	this.content.id	= "content";
+	this.front.appendChild(this.content);
+	this.front.addEventListener("touchend", this._endGetNewValue, false);
+	this.front.addEventListener("mouseup",  this._endGetNewValue, false);
+	this.front.addEventListener("touchmove", this._onTouchMove, false);
+	this.front.addEventListener("mousemove", this._onTouchMove, false);
+}
+
+FasterEntry.default_template = "<span>R$<%= content %></span>";
+
+FasterEntry.prototype = {
+	root:		document.body,
+	front:		null,
+	data:		null,
+	callback:	null,
+	template:	new Template(FasterEntry.default_template),
+	setTemplate:		function(template) {
+		this.template = new Template(template);
+	},
+	getNewValueOf:		function(data, callback) {
+		this.data = data;
+		this.callback = callback;
+		this.root.appendChild(this.front);
+		this.content.innerHTML	= this.template.render(data);
+		this.content.style.top	= (this.front.offsetHeight / 2) - (this.content.offsetHeight / 2);
+		this.content.style.left	= (this.front.offsetWidth  / 2) - (this.content.offsetWidth  / 2);
+	},
+	close:			function() {
+		this.root.removeChild(this.front);
+		if(this.callback) this.callback.call(this, this.data);
+	},
+	touchHandler:		function(point) {
+	},
+	_endGetNewValue:	function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		this.obj.close();
+	},
+	_onTouchMove:		function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		var touchPoint = {x: e.pageX, y: pageY, time: new Date()};
+		this.obj.touchHandler(point);
+	},
+};
+
+window.fasterEntry = new FasterEntry();
+		</script>
+		<button onclick='window.fasterEntry.getNewValueOf({content: "123,45"})'>123</button>
+	</body>
+</html>
