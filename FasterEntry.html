@@ -55,7 +55,7 @@ FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 	console.log("moneyIncrementCents");
 	data.cents += deltaX;
 	if(data.cents >= 100) {
-		parseInt(data.dolars += data.cents / 100);
+		data.dolars += parseInt(data.cents / 100);
 		data.cents %= 100;
 	}
 }
