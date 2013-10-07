@@ -49,14 +49,23 @@ FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
 FasterEntry.moneyIncrementDollars = function(data, deltaX, deltaY) {
 	console.log("moneyIncrementDollars");
 	data.dolars += deltaY;
+	if(data.dolars < 0) data.dolars = 0;
 }
 
 FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 	console.log("moneyIncrementCents");
-	data.cents += deltaX;
+	data.cents -= deltaX;
 	if(data.cents >= 100) {
-		parseInt(data.dolars += data.cents / 100);
-		data.cents %= 100;
+		data.dolars += parseInt(data.cents / 100);
+		data.cents = data.cents % 100;
+	}
+	if(data.cents < 0) {
+		if(data.dolars <= 0) {
+			data.cents = 0;
+		} else {
+			data.dolars += parseInt(data.cents / 100) - 1;
+			data.cents = data.cents % 100;
+		}
 	}
 }
 
