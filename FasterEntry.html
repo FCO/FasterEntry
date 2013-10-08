@@ -47,14 +47,14 @@ function FasterEntry(template, modifiers, root) {
 FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
 
 FasterEntry.moneyIncrementDollars = function(data, deltaX, deltaY) {
-	console.log("moneyIncrementDollars");
-	data.dolars += deltaY;
+	//console.log("moneyIncrementDollars");
+	data.dolars -= parseInt(deltaY / 5);
 	if(data.dolars < 0) data.dolars = 0;
 }
 
 FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
-	console.log("moneyIncrementCents");
-	data.cents -= deltaX;
+	//console.log("moneyIncrementCents");
+	data.cents -= parseInt(deltaX / 5);
 	if(data.cents >= 100) {
 		data.dolars += parseInt(data.cents / 100);
 		data.cents = data.cents % 100;
@@ -71,13 +71,13 @@ FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 
 FasterEntry.money_modifiers = {
 	dolars: {
-		startWithX:	10,
-		intervalX:	5,
+		startWithX:	500,
+		intervalX:	100,
 		callback:	FasterEntry.moneyIncrementDollars,
 	},
 	cents: {
-		startWithY:	10,
-		intervalY:	5,
+		startWithY:	500,
+		intervalY:	100,
 		callback:	FasterEntry.moneyIncrementCents,
 	},
 };
@@ -112,12 +112,13 @@ FasterEntry.prototype = {
 	close:			function() {
 		this.root.removeChild(this.front);
 		if(this.callback) this.callback.call(this, this.data);
-		this.touches	= [];
-		this.callback	= null;
-		this.data	= null;
-		this.firstTouch	= null;
-		this.modLast	= {};
-		this.last	= {};
+		this.touches		= [];
+		this.callback		= null;
+		this.data		= null;
+		this.firstTouch		= null;
+		this.actualModifier	= null;
+		this.modLast		= {};
+		this.last		= {};
 	},
 	touchStartHandler:		function(point) {
 		if(!this.touches) this.touches = [];
@@ -132,18 +133,19 @@ FasterEntry.prototype = {
 		if(!this.touches || this.touches.length <= 0) {
 			return;
 		}
-		console.log("touchHandler");
+		//console.log("touchHandler");
 		this.touches.push(point);
 		this.dispatchModifier();
 	},
 	dispatchModifier:	function() {
-		console.log("dispatchModifier");
+		//console.log("dispatchModifier");
 		var actual = this.actualModifier;
 		var point = this.touches[this.touches.length - 1];
 		if(actual) {
 			var mod = this.modifiers[actual];
-			var deltaX = point.x - this.modLast[actual].x;
-			var deltaY = point.y - this.modLast[actual].y;
+			var lastModPoint = this.modLast[actual];
+			var deltaX = point.x - lastModPoint.x;
+			var deltaY = point.y - lastModPoint.y;
 			var okX = ! mod.intervalX || mod.intervalX >= deltaX;
 			var okY = ! mod.intervalY || mod.intervalY >= deltaY;
 			if(okX && okY) {
@@ -156,18 +158,18 @@ FasterEntry.prototype = {
 			}
 		}
 		for(var actual in this.modifiers) {
-			console.log(actual);
+			//console.log(actual);
 			var mod = this.modifiers[actual];
-			console.log(mod);
+			//console.log(mod);
 			var deltaX = point.x - this.last.x;
-			console.log(point.x + " - " + this.last.x);
+			//console.log(point.x + " - " + this.last.x);
 			var deltaY = point.y - this.last.y;
-			console.log(point.y + " - " + this.last.y);
-			console.log("deltaX: [" + deltaX + "] deltaY: [" + deltaY + "]");
+			//console.log(point.y + " - " + this.last.y);
+			//console.log("deltaX: [" + deltaX + "] deltaY: [" + deltaY + "]");
 			var okX = ! mod.startWithX || mod.startWithX >= deltaX;
 			var okY = ! mod.startWithY || mod.startWithY >= deltaY;
 			if(okX && okY) {
-				console.log(this.data);
+				//console.log(this.data);
 				mod.callback.call(this, this.data, deltaX, deltaY);
 				this.actualModifier = actual;
 				this.modLast[actual] = point;
@@ -197,7 +199,11 @@ FasterEntry.prototype = {
 };
 
 window.fasterEntry = new FasterEntry();
+window.data = {dolars: 123, cents: 45};
+function changeButtonLabel(data) {
+	document.getElementById("btn").innerHTML = data.dolars + "," + data.cents;
+}
 		</script>
-		<button onclick='window.fasterEntry.getNewValueOf({dolars: 123, cents: 45})'>123</button>
+		<button id=btn onclick='window.fasterEntry.getNewValueOf(window.data, changeButtonLabel)'>123</button>
 	</body>
 </html>
