@@ -5,10 +5,17 @@ function FasterEntry(template, modifiers, root) {
 
 	this.root = root;
 	this.id = FasterEntry.next_id++;
+
+	this.canvas = document.createElement("CANVAS");
+	this.canvas.id = "faster_entry_canvas_id_" + this.id;
+	this.canvas.obj = this;
+	this.canvas.className	= "faster_entry_canvas";
+
 	this.front = document.createElement("DIV");
-	this.front.id = "faster_entry_id_" + this.id;
+	this.front.id = "faster_entry_front_id_" + this.id;
 	this.front.obj = this;
-	this.front.className	= "front";
+	this.front.className	= "faster_entry_front";
+
 	this.content	= document.createElement("DIV");
 	this.content.id	= "content";
 	this.modifiers = modifiers;
