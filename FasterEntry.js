@@ -1,35 +1,12 @@
-<html>
-	<head>
-		<script src="JSTemplate/Template.js"></script>
-		<style>
-.front {
-	position:		fixed;
-	top:			0;
-	left:			0;
-	display:		block;
-	width:			100%;
-	height:			100%;
-	background-color:	rgba(200, 200, 200, 0.5);
-	border-width:		1px;
-	z-index:		999;
-	vertical-align:		middle;
-}
-
-.front #content {
-	position:		fixed;
-	background-color:	red;
-	text-align:		center;
-	vertical-align:		middle;
-}
-		</style>
-	</head>
-	<body>
-		<script>
 function FasterEntry(template, modifiers, root) {
 	if(template == null)	template = this.default_template;
 	if(modifiers == null)	modifiers = FasterEntry.money_modifiers;
-	if(root != null)	this.root = root;
+	if(root == null)	root = document.body;
+
+	this.root = root;
+	this.id = FasterEntry.next_id++;
 	this.front = document.createElement("DIV");
+	this.front.id = "faster_entry_id_" + this.id;
 	this.front.obj = this;
 	this.front.className	= "front";
 	this.content	= document.createElement("DIV");
@@ -43,6 +20,8 @@ function FasterEntry(template, modifiers, root) {
 	this.front.addEventListener("touchstart",	this._onTouchStart,	false);
 	this.front.addEventListener("mousedown",	this._onTouchStart,	false);
 }
+
+FasterEntry.next_id = 1;
 
 FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
 
@@ -71,13 +50,13 @@ FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 
 FasterEntry.money_modifiers = {
 	dolars: {
-		startWithX:	500,
-		intervalX:	100,
+		startWithX:	20,
+		intervalX:	10,
 		callback:	FasterEntry.moneyIncrementDollars,
 	},
 	cents: {
-		startWithY:	500,
-		intervalY:	100,
+		startWithY:	20,
+		intervalY:	10,
 		callback:	FasterEntry.moneyIncrementCents,
 	},
 };
@@ -197,13 +176,3 @@ FasterEntry.prototype = {
 		this.obj.touchStartHandler(touchPoint);
 	},
 };
-
-window.fasterEntry = new FasterEntry();
-window.data = {dolars: 123, cents: 45};
-function changeButtonLabel(data) {
-	document.getElementById("btn").innerHTML = data.dolars + "," + data.cents;
-}
-		</script>
-		<button id=btn onclick='window.fasterEntry.getNewValueOf(window.data, changeButtonLabel)'>123</button>
-	</body>
-</html>
