@@ -1,3 +1,6 @@
 [submodule "JSTemplate"]
 	path = JSTemplate
 	url = https://github.com/FCO/JSTemplate.git
+[submodule "hammer.js"]
+	path = hammer.js
+	url = https://github.com/EightMedia/hammer.js.git
