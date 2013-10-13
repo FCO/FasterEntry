@@ -1,3 +1,13 @@
+Object.prototype.clone = function() {
+  var newObj = (this instanceof Array) ? [] : {};
+  for (var i in this) {
+    if (i == 'clone') continue;
+    if (this[i] && typeof this[i] == "object") {
+      newObj[i] = this[i].clone();
+    } else newObj[i] = this[i]
+  } return newObj;
+};
+
 function FasterEntry(template, modifiers, root) {
 	if(template == null)	template = this.default_template;
 	if(modifiers == null)	modifiers = FasterEntry.money_modifiers;
@@ -31,19 +41,20 @@ function FasterEntry(template, modifiers, root) {
 
 FasterEntry.next_id = 1;
 
-FasterEntry.default_template = "<span>R$<%= dolars %>,<%= cents %></span>";
+FasterEntry.default_template = "<span>R$<%= parseInt(dolars) %>,<%= parseInt(cents) %></span>";
 
 FasterEntry.moneyIncrementDollars = function(data, deltaX, deltaY) {
 	console.log("moneyIncrementDollars: " + data + ", " + deltaX + ", " + deltaY);
-	console.log(data);
+	//console.log(data);
 	data.dolars -= deltaY;
 	if(data.dolars < 0) data.dolars = 0;
+	return data;
 }
 
 FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
-	console.log("moneyIncrementCents: " + data + ", " + deltaX + ", " + deltaY);
-	console.log(data);
-	data.cents -= deltaX;
+	//console.log("moneyIncrementCents: " + data + ", " + deltaX + ", " + deltaY);
+	//console.log(data);
+	data.cents += deltaX;
 	if(data.cents >= 100) {
 		data.dolars += parseInt(data.cents / 100);
 		data.cents = data.cents % 100;
@@ -52,29 +63,31 @@ FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 		if(data.dolars <= 0) {
 			data.cents = 0;
 		} else {
-			data.dolars += parseInt(data.cents / 100) - 1;
-			data.cents = data.cents % 100;
+			data.dolars -= parseInt(data.cents / 100) - 1;
+			data.cents = 100 + data.cents % 100;
 		}
 	}
+	return data;
 }
 
 FasterEntry.money_modifiers = {
-	dolars: {
-		startWithX:	0.5,
-		intervalX:	0.3,
-		callback:	FasterEntry.moneyIncrementDollars,
-	},
 	cents: {
-		startWithY:	0.5,
-		intervalY:	0.3,
+		startWithX:	30,
+		intervalX:	30,
 		callback:	FasterEntry.moneyIncrementCents,
+	},
+	dolars: {
+		startWithY:	50,
+		intervalY:	30,
+		callback:	FasterEntry.moneyIncrementDollars,
 	},
 };
 
 FasterEntry.prototype = {
 	root:		document.body,
 	front:		null,
-	data:		null,
+	initialData:	null,
+	actualData:	null,
 	callback:	null,
 	touches:	null,
 	actualModifier:	null,
@@ -86,7 +99,7 @@ FasterEntry.prototype = {
 		this.template = new Template(template);
 	},
 	getNewValueOf:		function(data, callback) {
-		this.data = data;
+		this.actualData = this.initialData = data;
 		this.callback = callback;
 		this.root.appendChild(this.front);
 		this.render();
@@ -96,49 +109,36 @@ FasterEntry.prototype = {
 		this.last = {};
 	},
 	render:			function() {
-		this.content.innerHTML	= this.template.render(this.data);
+		this.content.innerHTML	= this.template.render(this.actualData);
 	},
 	close:			function() {
 		this.root.removeChild(this.front);
-		if(this.callback) this.callback.call(this, this.data);
+		if(this.callback) this.callback.call(this, this.actualData);
 		this.touches		= [];
 		this.callback		= null;
-		this.data		= null;
+		this.initialData	= null;
+		this.actualData		= null;
 		this.firstTouch		= null;
 		this.actualModifier	= null;
 		this.modLast		= {};
 		this.last		= {};
 	},
-	touchStartHandler:		function(touch_event) {
-		//if(!this.touches) this.touches = [];
-		//if(this.touches.length <= 0) {
-		//	this.firstTouch = point;
-		//	this.last = point;
-		//	this.touches.push(point);
-		//}
-		//console.log(point);
-	},
 	touchHandler:		function(touch_event) {
-		//console.log("touchHandler");
 		this.dispatchModifier(touch_event);
 	},
 	dispatchModifier:	function(touch_event) {
 		for(var actual in this.modifiers) {
+			if(!this.modifiers.hasOwnProperty(actual)) continue;
 			var mod = this.modifiers[actual];
-			var okX = ! mod.startWithX || mod.startWithX >= touch_event.deltaX;
-			var okY = ! mod.startWithY || mod.startWithY >= touch_event.deltaY;
+			var okX = mod.startWithX == null || Math.abs(mod.startWithX) <= Math.abs(touch_event.deltaX);
+			var okY = mod.startWithY == null || Math.abs(mod.startWithY) <= Math.abs(touch_event.deltaY);
 
-			if(okX && okY) {
-console.log(touch_event.deltaX + " - " + mod.startWithX + " = " + (touch_event.deltaX - mod.startWithX));
+			if(mod && okX && okY) {
+				var clonedData = this.initialData.clone();
 				var deltaX = 0, deltaY = 0;
-				//if(mod.intervalX) deltaX = touch_event.deltaX / mod.intervalX;
-				//if(mod.intervalY) deltaY = touch_event.deltaY / mod.intervalY;
-				if(mod.intervalX) deltaX = (touch_event.deltaX - mod.startWithX) / mod.intervalX;
-				if(mod.intervalY) deltaY = (touch_event.deltaY - mod.startWithY) / mod.intervalY;
-
-console.log("deltaX: " + deltaX + " deltaY: " + deltaY);
-
-				mod.callback.call(this, this.data, deltaX, deltaY);
+				if(mod.intervalX) deltaX = (touch_event.deltaX - (touch_event.deltaX / Math.abs(touch_event.deltaX) * mod.startWithX)) / mod.intervalX;
+				if(mod.intervalY) deltaY = (touch_event.deltaY - (touch_event.deltaY / Math.abs(touch_event.deltaY) * mod.startWithY)) / mod.intervalY;
+				this.actualData = mod.callback.call(this, clonedData, deltaX, deltaY);
 				this.render();
 				return;
 			}
@@ -156,6 +156,5 @@ console.log("deltaX: " + deltaX + " deltaY: " + deltaY);
 	_onTouchStart:		function(e) {
 		e.gesture.preventDefault();
 		var gest = e.gesture;
-		this.obj.touchStartHandler(gest);
 	},
 };

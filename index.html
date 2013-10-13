@@ -39,7 +39,7 @@ div.faster_entry_front #content {
 			window.fasterEntry = new FasterEntry();
 			window.data = {dolars: 123, cents: 45};
 			function changeButtonLabel(data) {
-				document.getElementById("btn").innerHTML = data.dolars + "," + data.cents;
+				document.getElementById("btn").innerHTML = parseInt(data.dolars) + "," + parseInt(data.cents);
 			}
 		</script>
 		<button id=btn onclick='window.fasterEntry.getNewValueOf(window.data, changeButtonLabel)'>123</button>
