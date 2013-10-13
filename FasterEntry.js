@@ -30,6 +30,7 @@ function FasterEntry(template, modifiers, root) {
 	this.content.id	= "content";
 	this.modifiers = modifiers;
 	this.front.appendChild(this.content);
+	this.cancelImage = new Image(this.cancelImgURL);
 	Hammer.plugins.fakeMultitouch();
 	Hammer.plugins.showTouches();
 	Hammer(this.front)
@@ -93,6 +94,7 @@ FasterEntry.prototype = {
 	actualModifier:	null,
 	modLast:	null,
 	last:		null,
+	cancelImgURL:	"./cancel.png",
 	template:	new Template(FasterEntry.default_template),
 	modifiers:	{},
 	setTemplate:		function(template) {
@@ -102,6 +104,8 @@ FasterEntry.prototype = {
 		this.actualData = this.initialData = data;
 		this.callback = callback;
 		this.root.appendChild(this.front);
+		//this.root.appendChild(this.canvas);
+		this.canvasContext = this.canvas.getContext("2d");
 		this.render();
 		this.content.style.top	= (this.front.offsetHeight / 2) - (this.content.offsetHeight / 2);
 		this.content.style.left	= (this.front.offsetWidth  / 2) - (this.content.offsetWidth  / 2);
@@ -156,5 +160,6 @@ FasterEntry.prototype = {
 	_onTouchStart:		function(e) {
 		e.gesture.preventDefault();
 		var gest = e.gesture;
+		this.canvasContext.drawImage(this.cancelImage, gest.pageX, gest.pageY);
 	},
 };
