@@ -44,18 +44,14 @@ FasterEntry.next_id = 1;
 
 FasterEntry.default_template = "<span>R$<%= parseInt(dolars) %>,<%= parseInt(cents) %></span>";
 
-FasterEntry.moneyIncrementDollars = function(data, deltaX, deltaY) {
-	console.log("moneyIncrementDollars: " + data + ", " + deltaX + ", " + deltaY);
-	//console.log(data);
-	data.dolars -= deltaY;
+FasterEntry.moneyIncrementDollars = function(data, distance) {
+	data.dolars += distance;
 	if(data.dolars < 0) data.dolars = 0;
 	return data;
 }
 
-FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
-	//console.log("moneyIncrementCents: " + data + ", " + deltaX + ", " + deltaY);
-	//console.log(data);
-	data.cents += deltaX;
+FasterEntry.moneyIncrementCents = function(data, distance) {
+	data.cents += distance;
 	if(data.cents >= 100) {
 		data.dolars += parseInt(data.cents / 100);
 		data.cents = data.cents % 100;
@@ -72,20 +68,30 @@ FasterEntry.moneyIncrementCents = function(data, deltaX, deltaY) {
 }
 
 FasterEntry.money_modifiers = {
-	cents: {
-		startWithX:	30,
-		intervalX:	30,
+	incrCents: {
+		reversable:	true,
+		directions:	[Hammer.DIRECTION_RIGHT],
+		startWith:	30,
+		interval:	30,
 		callback:	FasterEntry.moneyIncrementCents,
 	},
-	dolars: {
-		startWithY:	50,
-		intervalY:	30,
+	dollars: {
+		reversable:	true,
+		directions:	[Hammer.DIRECTION_UP],
+		startWith:	50,
+		interval:	30,
 		callback:	FasterEntry.moneyIncrementDollars,
 	},
 };
 
 FasterEntry.prototype = {
 	root:		document.body,
+	reverse:	{
+				right:	Hammer.DIRECTION_LEFT,
+				left:	Hammer.DIRECTION_RIGHT,
+				up:	Hammer.DIRECTION_DOWN,
+				down:	Hammer.DIRECTION_UP,
+			},
 	front:		null,
 	initialData:	null,
 	actualData:	null,
@@ -131,20 +137,34 @@ FasterEntry.prototype = {
 		this.dispatchModifier(touch_event);
 	},
 	dispatchModifier:	function(touch_event) {
+		this.actualData = this.initialData.clone();
 		for(var actual in this.modifiers) {
 			if(!this.modifiers.hasOwnProperty(actual)) continue;
 			var mod = this.modifiers[actual];
-			var okX = mod.startWithX == null || Math.abs(mod.startWithX) <= Math.abs(touch_event.deltaX);
-			var okY = mod.startWithY == null || Math.abs(mod.startWithY) <= Math.abs(touch_event.deltaY);
+			var dir = false;
+			var reverse = false;
+			for(var i = 0; i < mod.directions.length; i++) {
+				if(touch_event.direction == mod.directions[i]) {
+					dir = true;
+					break;
+				}
+				if(touch_event.direction == this.reverse[mod.directions[i]]) {
+					dir = true;
+					reverse = true;
+					break;
+				}
+			}
+			if(dir) {
+				var ok = mod.startWith == null || Math.abs(mod.startWith) <= Math.abs(touch_event.distance);
 
-			if(mod && okX && okY) {
-				var clonedData = this.initialData.clone();
-				var deltaX = 0, deltaY = 0;
-				if(mod.intervalX) deltaX = (touch_event.deltaX - (touch_event.deltaX / Math.abs(touch_event.deltaX) * mod.startWithX)) / mod.intervalX;
-				if(mod.intervalY) deltaY = (touch_event.deltaY - (touch_event.deltaY / Math.abs(touch_event.deltaY) * mod.startWithY)) / mod.intervalY;
-				this.actualData = mod.callback.call(this, clonedData, deltaX, deltaY);
-				this.render();
-				return;
+				if(mod && ok) {
+					var deltaX = 0, deltaY = 0;
+					if(mod.interval)
+						distance = (touch_event.distance - (touch_event.distance / Math.abs(touch_event.distance) * mod.startWith)) / mod.interval;
+					this.actualData = mod.callback.call(this, this.actualData, (!reverse?1:-1) * distance);
+					this.render();
+					return;
+				}
 			}
 		}
 	},
@@ -160,6 +180,6 @@ FasterEntry.prototype = {
 	_onTouchStart:		function(e) {
 		e.gesture.preventDefault();
 		var gest = e.gesture;
-		this.canvasContext.drawImage(this.cancelImage, gest.pageX, gest.pageY);
+		//this.canvasContext.drawImage(this.cancelImage, gest.pageX, gest.pageY);
 	},
 };
