@@ -13,6 +13,13 @@ function FasterEntry(template, modifiers, root) {
 	if(modifiers == null)	modifiers = FasterEntry.money_modifiers;
 	if(root == null)	root = document.body;
 
+	this.template = new Template(FasterEntry.default_template),
+	this.template.addHelper("parseCents", function(integer){
+		integer = parseInt(integer);
+		integer = (integer< 10 ? "0" : "") + integer;
+		return integer;
+	});
+
 	this.root = root;
 	this.id = FasterEntry.next_id++;
 
@@ -42,7 +49,7 @@ function FasterEntry(template, modifiers, root) {
 
 FasterEntry.next_id = 1;
 
-FasterEntry.default_template = "<span>R$<%= parseInt(dolars) %>,<%= parseInt(cents) %></span>";
+FasterEntry.default_template = "<span>R$<%= parseInt(dolars) %>,<%= this.parseCents(cents) %></span>";
 
 FasterEntry.moneyIncrementDollars = function(data, distance) {
 	console.log(data);
@@ -103,7 +110,6 @@ FasterEntry.prototype = {
 	modLast:	null,
 	last:		null,
 	cancelImgURL:	"./cancel.png",
-	template:	new Template(FasterEntry.default_template),
 	modifiers:	{},
 	setTemplate:		function(template) {
 		this.template = new Template(template);
