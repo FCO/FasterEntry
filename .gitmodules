@@ -4,3 +4,6 @@
 [submodule "hammer.js"]
 	path = hammer.js
 	url = https://github.com/EightMedia/hammer.js.git
+[submodule "mousetrap"]
+	path = mousetrap
+	url = https://github.com/ccampbell/mousetrap.git

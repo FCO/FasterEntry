@@ -45,12 +45,14 @@ FasterEntry.next_id = 1;
 FasterEntry.default_template = "<span>R$<%= parseInt(dolars) %>,<%= parseInt(cents) %></span>";
 
 FasterEntry.moneyIncrementDollars = function(data, distance) {
+	console.log(data);
 	data.dolars += distance;
 	if(data.dolars < 0) data.dolars = 0;
 	return data;
 }
 
 FasterEntry.moneyIncrementCents = function(data, distance) {
+	console.log(data);
 	data.cents += distance;
 	if(data.cents >= 100) {
 		data.dolars += parseInt(data.cents / 100);
@@ -71,14 +73,14 @@ FasterEntry.money_modifiers = {
 	incrCents: {
 		reversable:	true,
 		directions:	[Hammer.DIRECTION_RIGHT],
-		startWith:	30,
+		startWith:	3,
 		interval:	30,
 		callback:	FasterEntry.moneyIncrementCents,
 	},
 	dollars: {
 		reversable:	true,
 		directions:	[Hammer.DIRECTION_UP],
-		startWith:	50,
+		startWith:	3,
 		interval:	30,
 		callback:	FasterEntry.moneyIncrementDollars,
 	},
@@ -107,6 +109,29 @@ FasterEntry.prototype = {
 		this.template = new Template(template);
 	},
 	getNewValueOf:		function(data, callback) {
+		var _this = this;
+		Mousetrap.bind("enter", function(){
+			_this.close();
+		});
+		Mousetrap.bind("esc", function(){
+			_this.cancel();
+		});
+		Mousetrap.bind("up", function(){
+			_this.actualData = FasterEntry.moneyIncrementDollars.call(_this, _this.actualData.clone(), 1);
+			_this.render();
+		});
+		Mousetrap.bind("down", function(){
+			_this.actualData = FasterEntry.moneyIncrementDollars.call(_this, _this.actualData.clone(), -1);
+			_this.render();
+		});
+		Mousetrap.bind("right", function(){
+			_this.actualData = FasterEntry.moneyIncrementCents.call(_this, _this.actualData.clone(), 1);
+			_this.render();
+		});
+		Mousetrap.bind("left", function(){
+			_this.actualData = FasterEntry.moneyIncrementCents.call(_this, _this.actualData.clone(), -1);
+			_this.render();
+		});
 		this.actualData = this.initialData = data;
 		this.callback = callback;
 		this.root.appendChild(this.front);
@@ -122,12 +147,21 @@ FasterEntry.prototype = {
 		this.content.innerHTML	= this.template.render(this.actualData);
 	},
 	close:			function() {
-		this.root.removeChild(this.front);
 		if(this.callback) this.callback.call(this, this.actualData);
+		this._close();
+	},
+	cancel:			function() {
+		this._close();
+	},
+	_close:			function() {
+		Mousetrap.reset();
+		this.root.removeChild(this.front);
 		this.touches		= [];
 		this.callback		= null;
 		this.initialData	= null;
 		this.actualData		= null;
+		this.lastData		= null;
+		this.lastDirection	= null;
 		this.firstTouch		= null;
 		this.actualModifier	= null;
 		this.modLast		= {};
@@ -137,7 +171,15 @@ FasterEntry.prototype = {
 		this.dispatchModifier(touch_event);
 	},
 	dispatchModifier:	function(touch_event) {
-		this.actualData = this.initialData.clone();
+		console.log(touch_event.direction + " - " + touch_event.distance);
+		if(this.lastDirection == null) {
+console.log("initial");
+			this.lastData = this.initialData.clone();
+		} else if(this.lastDirection != touch_event.direction) {
+console.log("change");
+			this.lastData = this.actualData.clone();
+		}
+		
 		for(var actual in this.modifiers) {
 			if(!this.modifiers.hasOwnProperty(actual)) continue;
 			var mod = this.modifiers[actual];
@@ -155,13 +197,14 @@ FasterEntry.prototype = {
 				}
 			}
 			if(dir) {
+				this.lastDirection = touch_event.direction;
 				var ok = mod.startWith == null || Math.abs(mod.startWith) <= Math.abs(touch_event.distance);
 
 				if(mod && ok) {
 					var deltaX = 0, deltaY = 0;
 					if(mod.interval)
 						distance = (touch_event.distance - (touch_event.distance / Math.abs(touch_event.distance) * mod.startWith)) / mod.interval;
-					this.actualData = mod.callback.call(this, this.actualData, (!reverse?1:-1) * distance);
+					this.actualData = mod.callback.call(this, this.lastData.clone(), (!reverse?1:-1) * distance);
 					this.render();
 					return;
 				}
